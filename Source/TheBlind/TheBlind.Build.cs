@@ -20,7 +20,8 @@ public class TheBlind : ModuleRules
 			"GameplayTags",
 			"GameplayAbilities",
 			"UMG",
-			"PaperZD"
+			"PaperZD",
+			"Paper2D"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
