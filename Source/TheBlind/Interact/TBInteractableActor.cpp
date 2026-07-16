@@ -23,7 +23,7 @@ ATBInteractableActor::ATBInteractableActor()
 	}
 }
 
-void ATBInteractableActor::Interact()
+void ATBInteractableActor::Interact(ATBPlayerController& PC)
 {
 	UE_LOG(LogTemp, Warning, TEXT("상호작용 대상 : %s"), *GetNameSafe(this));
 }

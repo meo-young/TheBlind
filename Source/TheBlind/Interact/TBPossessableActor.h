@@ -1,15 +1,13 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Interactable.h"
-#include "GameFramework/Actor.h"
-#include "TBInteractableActor.generated.h"
+#include "TBInteractableActor.h"
+#include "TBPossessableActor.generated.h"
 
-class UBoxComponent;
-class UPaperFlipbookComponent;
+class UTBCameraComponent;
 
 UCLASS()
-class THEBLIND_API ATBInteractableActor : public AActor, public IInteractable
+class THEBLIND_API ATBPossessableActor : public ATBInteractableActor
 {
 	GENERATED_BODY()
 	
@@ -17,10 +15,10 @@ class THEBLIND_API ATBInteractableActor : public AActor, public IInteractable
 // Actor Interface
 // ─────────────────────────────────────────────────────────────
 public:
-	ATBInteractableActor();
+	ATBPossessableActor();
 	
 	
-
+	
 // ─────────────────────────────────────────────────────────────
 // Interactable Interface
 // ─────────────────────────────────────────────────────────────
@@ -30,16 +28,13 @@ public:
 	
 	
 // ─────────────────────────────────────────────────────────────
-// Component
+// Variable
 // ─────────────────────────────────────────────────────────────
-protected:
+public:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USceneComponent> SceneComponent;
+	TObjectPtr<UTBCameraComponent> EntryCamera;
 	
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
-	
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UBoxComponent> InteractionBox;
+	UPROPERTY(EditAnywhere, Category = "변수")
+	TSoftObjectPtr<UWorld> StreamingLevel;
 
 };
