@@ -5,26 +5,11 @@
 #include "GameFramework/PlayerController.h"
 #include "TBPlayerController.generated.h"
 
-class ATBRemoteCameraRig;
-class ATBCameraDirector;
 class ATBPossessableActor;
 class UTBInputConfig;
 class UInputMappingContext;
-class ULevelStreaming;
 struct FInputActionValue;
-
-/** 카메라 상태와 이전 상태 사이의 전환 정보를 함께 보관합니다. */
-struct FTBCameraStep
-{
-	/** 이 단계가 나타내는 카메라 상태 태그입니다. */
-	FGameplayTag StateTag;
-
-	/** 이전 단계와 이 단계 사이의 Blend 또는 Cut 태그입니다. */
-	FGameplayTag TransitionTag;
-
-	/** Blend 전환에 필요한 시간입니다. */
-	float Duration = 0.0f;
-};
+enum class ETBCameraTransitionDirection : int8;
 
 UCLASS()
 class THEBLIND_API ATBPlayerController : public APlayerController
@@ -40,101 +25,24 @@ public:
 	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
 	virtual void BeginPlay() override;
 
+	
+	
 // ─────────────────────────────────────────────────────────────
 // Input
-// ─────────────────────────────────────────────────────────────
-protected:
-	void SetRemoteViewInputEnabled(bool bEnabled);
-	void Input_RemoteBack(const FInputActionValue& InputActionValue);
-
+// ─────────────────────────────────────────────────────────────	
+protected:	
 	/** InputTag 입력에 따라 Ability를 발동시키기 위한 바인딩 함수입니다. */
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 
 	/** InputTag 입력 종료에 따라 Ability를 중단하기 위한 바인딩 함수입니다. */
 	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
 
-// ─────────────────────────────────────────────────────────────
-// Interaction
-// ─────────────────────────────────────────────────────────────
-public:
-	void BeginRemoteSequence(ATBPossessableActor& SourceActor);
-
-	/** Remote Hold 카메라 이동을 시작합니다. */
-	bool BeginRemoteHold();
-
-	/** Remote Hold 입력이 종료됐을 때 기본 시점으로 돌아갑니다. */
-	void EndRemoteHold();
-
-// ─────────────────────────────────────────────────────────────
-// Remote Camera
-// ─────────────────────────────────────────────────────────────
-protected:
-	/** 실제 화면 시점과 보간을 담당하는 런타임 카메라 액터입니다. */
-	UPROPERTY(Transient)
-	TObjectPtr<ATBCameraDirector> CameraDirector;
-
-	/** 현재 카메라 시퀀스를 시작한 상호작용 오브젝트입니다. */
-	TWeakObjectPtr<ATBPossessableActor> ActivePossessableActor;
-
-	/** 플레이어 시점에서 EntryCamera까지 이동하는 시간입니다. */
-	UPROPERTY(EditDefaultsOnly, Category = "변수|카메라")
-	float EntryBlendDuration = 1.0f;
-
+	void HandleCameraTransitionFinished(ETBCameraTransitionDirection FinishedDirection);
+	void SetRemoteViewInputEnabled(bool bEnabled);
+	
 	UPROPERTY(EditDefaultsOnly, Category = "변수|입력")
 	TObjectPtr<UTBInputConfig> ControllerInputConfig;
 
 	UPROPERTY(EditDefaultsOnly, Category = "변수")
 	TSoftObjectPtr<UInputMappingContext> RemoteViewIMC;
-
-// ─────────────────────────────────────────────────────────────
-// Camera State
-// ─────────────────────────────────────────────────────────────
-	/** 플레이어 시점으로 돌아온 뒤 Remote 시퀀스를 정리합니다. */
-	void FinishRemoteSequence();
-
-	/** 지정한 카메라 상태까지 이동하도록 요청합니다. */
-	void RequestCameraState(const FGameplayTag& NewDesiredState);
-
-	/** 현재 안정적으로 도착한 카메라 상태인지 검사합니다. */
-	bool IsCurrentCameraState(const FGameplayTag& CameraState) const;
-
-	/** 현재 단계에서 목표 단계 방향으로 카메라를 진행합니다. */
-	void AdvanceCameraState();
-
-	/** CameraDirector의 보간이 끝났을 때 호출됩니다. */
-	void HandleCameraBlendFinished();
-
-	/** 도착한 단계와 ASC의 카메라 상태 태그를 함께 갱신합니다. */
-	void CompleteCameraStep(int32 StepIndex);
-
-	/** 카메라 상태 태그에 대응하는 단계 인덱스를 반환합니다. */
-	int32 FindCameraStepIndex(const FGameplayTag& CameraState) const;
-
-	/** 상태 태그에 해당하는 실제 카메라 시점을 구합니다. */
-	bool ResolveCameraView(const FGameplayTag& CameraState, FMinimalViewInfo& OutView) const;
-
-	/** 스트리밍 레벨이 표시되면 해당 레벨의 RemoteCameraRig를 연결합니다. */
-	UFUNCTION()
-	void HandleRemoteLevelShown();
-
-	/** 카메라 상태, 순서, 전환 방식을 하나로 관리하는 선형 경로입니다. */
-	TArray<FTBCameraStep> CameraSteps;
-
-	/** 마지막으로 완전히 도착한 단계입니다. */
-	int32 CurrentCameraStep = INDEX_NONE;
-
-	/** 입력에 의해 최종적으로 도달하려는 단계입니다. */
-	int32 TargetCameraStep = INDEX_NONE;
-
-	/** 현재 보간이 끝나면 도착할 단계입니다. INDEX_NONE이면 보간 중이 아닙니다. */
-	int32 PendingCameraStep = INDEX_NONE;
-
-	/** 현재 상호작용을 위해 로드한 서브레벨입니다. */
-	TWeakObjectPtr<ULevelStreaming> ActiveStreamingLevel;
-
-	/** 현재 스트리밍 레벨에서 찾은 카메라 리그입니다. */
-	TWeakObjectPtr<ATBRemoteCameraRig> ActiveRemoteCameraRig;
-
-	UPROPERTY(EditDefaultsOnly, Category = "변수|카메라")
-	float RemoteHoldBlendDuration = 2.0f;
 };

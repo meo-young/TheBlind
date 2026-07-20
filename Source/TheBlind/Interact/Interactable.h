@@ -17,6 +17,6 @@ class THEBLIND_API IInteractable
 	GENERATED_BODY()
 
 public:
-	virtual void Interact(ATBPlayerController& PC) = 0;
+	virtual bool Interact(ATBPlayerController& PC) = 0;
 	
 };

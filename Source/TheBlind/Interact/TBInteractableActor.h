@@ -25,7 +25,7 @@ public:
 // Interactable Interface
 // ─────────────────────────────────────────────────────────────
 public:
-	virtual void Interact(ATBPlayerController& PC) override;
+	virtual bool Interact(ATBPlayerController& PC) override;
 	
 	
 	
@@ -33,9 +33,6 @@ public:
 // Component
 // ─────────────────────────────────────────────────────────────
 protected:
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USceneComponent> SceneComponent;
-	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
 	

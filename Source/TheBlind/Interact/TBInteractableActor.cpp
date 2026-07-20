@@ -4,16 +4,10 @@
 
 ATBInteractableActor::ATBInteractableActor()
 {
-	// SceneComponent를 생성합니다.
-	{
-		SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
-		SetRootComponent(SceneComponent);
-	}
-	
 	// FlipbookComponent를 생성합니다.
 	{
 		FlipbookComponent = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("Flipbook"));
-		FlipbookComponent->SetupAttachment(SceneComponent);
+		SetRootComponent(FlipbookComponent);
 	}
 	
 	// 상호작용 영역을 인식하는 Collision을 생성합니다.
@@ -23,7 +17,8 @@ ATBInteractableActor::ATBInteractableActor()
 	}
 }
 
-void ATBInteractableActor::Interact(ATBPlayerController& PC)
+bool ATBInteractableActor::Interact(ATBPlayerController& PC)
 {
 	UE_LOG(LogTemp, Warning, TEXT("상호작용 대상 : %s"), *GetNameSafe(this));
+	return true;
 }

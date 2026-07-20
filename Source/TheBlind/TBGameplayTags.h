@@ -18,14 +18,7 @@ namespace TBGameplayTags
 	// Camera State
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraState_Player);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraState_Entry);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraState_Remote_Idle);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraState_Remote_Hold);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraState_Remote_Final);
-
-
-	// Camera Transition
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraTransition_Blend);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CameraTransition_Cut);
 	
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Interact_Finished);

@@ -1,5 +1,4 @@
 ﻿#include "TBGameplayAbility_Interact.h"
-
 #include "TBGameplayTags.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Character/Player/TBPlayerController.h"
@@ -37,8 +36,10 @@ void UTBGameplayAbility_Interact::ActivateAbility(const FGameplayAbilitySpecHand
 					WaitFinishedTask->EventReceived.AddDynamic(this, &ThisClass::HandleInteractionFinished);
 					WaitFinishedTask->ReadyForActivation();
 					
-					Interactable->Interact(*PC);
-					return;
+					if (Interactable->Interact(*PC))
+					{
+						return;
+					}
 				}
 			}
 		}
