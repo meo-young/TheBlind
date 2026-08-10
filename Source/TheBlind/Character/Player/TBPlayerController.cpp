@@ -10,6 +10,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Input/TBInputComponent.h"
 #include "Misc/PackageName.h"
+#include "Subsystem/RenderingQualitySubsystem.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 
 ATBPlayerController::ATBPlayerController()
@@ -41,6 +42,32 @@ void ATBPlayerController::PostProcessInput(const float DeltaTime, const bool bGa
 	}
 
 	Super::PostProcessInput(DeltaTime, bGamePaused);
+}
+
+bool ATBPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	if (Params.Event == IE_Pressed)
+	{
+		if (Params.Key == EKeys::One)
+		{
+			URenderingQualitySubsystem::Get(this).ApplyRenderingQualityLevel(ERenderingQualityLevel::Low);
+			return true;
+		}
+
+		if (Params.Key == EKeys::Two)
+		{
+			URenderingQualitySubsystem::Get(this).ApplyRenderingQualityLevel(ERenderingQualityLevel::Medium);
+			return true;
+		}
+
+		if (Params.Key == EKeys::Three)
+		{
+			URenderingQualitySubsystem::Get(this).ApplyRenderingQualityLevel(ERenderingQualityLevel::High);
+			return true;
+		}
+	}
+	
+	return Super::InputKey(Params);
 }
 
 void ATBPlayerController::BeginPlay()

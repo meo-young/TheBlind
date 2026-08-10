@@ -23,6 +23,7 @@ public:
 	ATBPlayerController();
 	virtual void SetupInputComponent() override;
 	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 	virtual void BeginPlay() override;
 
 	
