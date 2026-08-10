@@ -34,7 +34,7 @@ public:
 // ─────────────────────────────────────────────────────────────
 protected:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UPaperFlipbookComponent> FlipbookComponent;
+	TObjectPtr<UStaticMeshComponent> Mesh;
 	
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> InteractionBox;

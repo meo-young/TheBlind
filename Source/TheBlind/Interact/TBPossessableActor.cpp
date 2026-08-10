@@ -13,13 +13,13 @@ ATBPossessableActor::ATBPossessableActor()
 	// 상호작용 시 빙의할 카메라 컴포넌트를 생성합니다.
 	{
 		EntryCamera = CreateDefaultSubobject<UTBCameraComponent>(TEXT("EntryComponent"));
-		EntryCamera->SetupAttachment(FlipbookComponent);
+		EntryCamera->SetupAttachment(Mesh);
 	}
 	
 	// 닿으면 스트리밍 레벨을 로드하는 CapsuleComponent를 생성합니다.
 	{
 		LevelStreamingTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("LevelStreamingTrigger"));
-		LevelStreamingTrigger->SetupAttachment(FlipbookComponent);
+		LevelStreamingTrigger->SetupAttachment(Mesh);
 		LevelStreamingTrigger->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnLevelStreamingTriggerBeginOverlap);
 		LevelStreamingTrigger->OnComponentEndOverlap.AddDynamic(this, &ThisClass::OnLevelStreamingTriggerEndOverlap);
 	}
