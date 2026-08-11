@@ -27,7 +27,10 @@ ATBPossessableActor::ATBPossessableActor()
 
 bool ATBPossessableActor::Interact(ATBPlayerController& PC)
 {
-	if (!bIsStreamingLevelLoaded && !StreamingLevel.IsNull()) return false;
+	if (bUseRemoteCamera && !bIsStreamingLevelLoaded && !StreamingLevel.IsNull())
+	{
+		return false;
+	}
 	
 	Super::Interact(PC);
 
@@ -36,6 +39,19 @@ bool ATBPossessableActor::Interact(ATBPlayerController& PC)
 	{
 		UE_LOG(LogTemp, Error, TEXT("스트리밍 카메라 전환 실패: TBPlayerCameraManager를 찾을 수 없습니다."));
 		return false;
+	}
+
+	FTBCameraStep EntryCameraStep;
+	EntryCameraStep.ViewTarget = this;
+	EntryCameraStep.TransitionParams = EntryCamera->ViewTargetTransitionParams;
+	EntryCameraStep.CameraShakeClass = EntryCamera->CameraShakeClass;
+	EntryCameraStep.CameraShakeScale = EntryCamera->CameraShakeScale;
+	EntryCameraStep.bStopCameraShakeImmediately = EntryCamera->bStopCameraShakeImmediately;
+
+	if (!bUseRemoteCamera)
+	{
+		CameraManager->BeginCameraTransition(EntryCameraStep);
+		return true;
 	}
 
 	AActor* FinalCameraActor = StreamingCameraActor.Get();
@@ -52,10 +68,6 @@ bool ATBPossessableActor::Interact(ATBPlayerController& PC)
 		return false;
 	}
 
-	FTBCameraStep EntryCameraStep;
-	EntryCameraStep.ViewTarget = this;
-	EntryCameraStep.TransitionParams = EntryCamera->ViewTargetTransitionParams;
-
 	FTBCameraStep FinalCameraStep;
 	FinalCameraStep.ViewTarget = FinalCameraActor;
 	FinalCameraStep.TransitionParams = FinalCamera->ViewTargetTransitionParams;
@@ -70,7 +82,7 @@ bool ATBPossessableActor::Interact(ATBPlayerController& PC)
 
 void ATBPossessableActor::OnLevelStreamingTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor != UGameplayStatics::GetPlayerPawn(this, 0) || StreamingLevel.IsNull() || bShouldStreamingLevelBeLoaded)
+	if (!bUseRemoteCamera || OtherActor != UGameplayStatics::GetPlayerPawn(this, 0) || StreamingLevel.IsNull() || bShouldStreamingLevelBeLoaded)
 	{
 		return;
 	}
@@ -90,7 +102,7 @@ void ATBPossessableActor::OnLevelStreamingTriggerBeginOverlap(UPrimitiveComponen
 
 void ATBPossessableActor::OnLevelStreamingTriggerEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor != UGameplayStatics::GetPlayerPawn(this, 0) || LevelStreamingTrigger->IsOverlappingActor(OtherActor))
+	if (!bUseRemoteCamera || OtherActor != UGameplayStatics::GetPlayerPawn(this, 0) || LevelStreamingTrigger->IsOverlappingActor(OtherActor))
 	{
 		return;
 	}

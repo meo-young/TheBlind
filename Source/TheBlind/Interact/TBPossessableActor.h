@@ -59,10 +59,17 @@ public:
 // Streaming
 // ─────────────────────────────────────────────────────────────
 public:
-	UPROPERTY(EditDefaultsOnly, Category = "변수")
+	/**
+	 * true면 EntryCamera 보간 후 StreamingCameraActor로 한 번 더 전환합니다.
+	 * false면 EntryCamera에 도착한 상태로 머물며, 원격 카메라와 레벨 스트리밍을 사용하지 않습니다.
+	 */
+	UPROPERTY(EditAnywhere, Category = "변수|카메라")
+	bool bUseRemoteCamera = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "변수|스트리밍", meta = (EditCondition = "bUseRemoteCamera"))
 	TSoftObjectPtr<UWorld> StreamingLevel;
 
-	UPROPERTY(EditInstanceOnly, Category = "변수")
+	UPROPERTY(EditInstanceOnly, Category = "변수|카메라", meta = (EditCondition = "bUseRemoteCamera"))
 	TWeakObjectPtr<AActor> StreamingCameraActor;
 
 private:

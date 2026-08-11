@@ -24,14 +24,28 @@ void ATBPlayerCameraManager::StopActiveCameraStepShake(const bool bImmediately)
 	}
 }
 
+void ATBPlayerCameraManager::BeginCameraTransition(const FTBCameraStep& TargetCam)
+{
+	StartCameraTransition({TargetCam});
+}
+
 void ATBPlayerCameraManager::BeginCameraTransition(const FTBCameraStep& EntryCam, const FTBCameraStep& FinalCam)
 {
+	StartCameraTransition({EntryCam, FinalCam});
+}
+
+void ATBPlayerCameraManager::StartCameraTransition(const TArray<FTBCameraStep>& CameraSteps)
+{
+	if (CameraSteps.IsEmpty())
+	{
+		return;
+	}
+
 	StopActiveCameraStepShake(true);
 
-	ViewTargetStack.Reset(3);
+	ViewTargetStack.Reset(CameraSteps.Num() + 1);
 	ViewTargetStack.Push({GetViewTarget(), FViewTargetTransitionParams()});
-	ViewTargetStack.Push(EntryCam);
-	ViewTargetStack.Push(FinalCam);
+	ViewTargetStack.Append(CameraSteps);
 
 	CurrentCameraStep = 0;
 	bIsBlendPending = false;

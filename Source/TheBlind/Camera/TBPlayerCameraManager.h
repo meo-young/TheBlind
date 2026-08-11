@@ -45,7 +45,10 @@ class THEBLIND_API ATBPlayerCameraManager : public APlayerCameraManager
 // Transition State
 // ─────────────────────────────────────────────────────────────
 public:
-	/** 카메라 보간을 시작하는 함수입니다. */
+	/** 하나의 카메라를 향해 보간을 시작하는 함수입니다. */
+	void BeginCameraTransition(const FTBCameraStep& TargetCam);
+
+	/** Entry 카메라를 거쳐 Final 카메라로 보간을 시작하는 함수입니다. */
 	void BeginCameraTransition(const FTBCameraStep& EntryCam, const FTBCameraStep& FinalCam);
 	
 	/** 역순으로 카메라 보간을 시작하는 함수입니다. */
@@ -57,6 +60,9 @@ public:
 	}
 
 private:
+	/** 플레이어 카메라 뒤에 전달받은 단계들을 추가하고 보간을 시작합니다. */
+	void StartCameraTransition(const TArray<FTBCameraStep>& CameraSteps);
+
 	/** 해당 카메라 단계에 설정된 UCameraShakeBase를 재생합니다. */
 	void StartCameraStepShake(const FTBCameraStep& CameraStep);
 
