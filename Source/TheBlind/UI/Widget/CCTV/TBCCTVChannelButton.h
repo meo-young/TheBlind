@@ -1,85 +1,67 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interact/TBPossessableActor.h"
-#include "TBMonitor.generated.h"
+#include "Components/Button.h"
+#include "TBCCTVChannelButton.generated.h"
 
-class ATBSceneCaptureActor;
-class UTBCCTVWidget;
-enum class ETBCameraTransitionDirection : int8;
+DECLARE_MULTICAST_DELEGATE_OneParam(FTBCCTVChannelSelected, int32);
 
-UCLASS()
-class THEBLIND_API ATBMonitor : public ATBPossessableActor
+UCLASS(meta = (DisplayName = "CCTV Channel Button"))
+class THEBLIND_API UTBCCTVChannelButton : public UButton
 {
 	GENERATED_BODY()
 
 // ─────────────────────────────────────────────────────────────
-// Actor Interface
+// Initializer
 // ─────────────────────────────────────────────────────────────
 public:
-	ATBMonitor();
+	/** 버튼 클릭 이벤트와 채널 선택 이벤트를 연결합니다. */
+	void InitializeChannelButton();
 
+	/** 버튼 클릭 이벤트와 채널 선택 이벤트의 연결을 해제합니다. */
+	void ShutdownChannelButton();
 
-// ─────────────────────────────────────────────────────────────
-// Interactable Interface
-// ─────────────────────────────────────────────────────────────
-public:
-	virtual bool Interact(ATBPlayerController& PC) override;
 
 
 // ─────────────────────────────────────────────────────────────
-// CCTV
+// Delegate
 // ─────────────────────────────────────────────────────────────
 public:
-	bool SelectCCTV(int32 Index);
-	int32 GetCurrentCCTVIndex() const { return CurrentCCTVIndex; }
-	int32 GetCCTVCount() const { return CCTVCameras.Num(); }
+	FTBCCTVChannelSelected& OnChannelSelected() { return ChannelSelectedEvent; }
+
 
 
 // ─────────────────────────────────────────────────────────────
-// Camera Transition Callback
+// Getter
+// ─────────────────────────────────────────────────────────────
+public:
+	int32 GetChannelIndex() const { return ChannelIndex; }
+
+
+
+// ─────────────────────────────────────────────────────────────
+// Button Callback
 // ─────────────────────────────────────────────────────────────
 private:
-	void HandleCameraTransitionFinished(ETBCameraTransitionDirection FinishedDirection);
+	UFUNCTION()
+	void HandleClicked();
+
 
 
 // ─────────────────────────────────────────────────────────────
-// CCTV Widget
+// Delegate
 // ─────────────────────────────────────────────────────────────
 private:
-	bool OpenCCTVWidget();
+	/** 버튼 클릭 시 설정된 CCTV 채널 인덱스를 전달하는 이벤트입니다. */
+	FTBCCTVChannelSelected ChannelSelectedEvent;
 
-
-// ─────────────────────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────────────────────
-protected:
-	/** 집 안의 여러 장소를 렌더링하는 모니터 컴포넌트입니다. */
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UStaticMeshComponent> Monitor;
 
 
 // ─────────────────────────────────────────────────────────────
-// CCTV
+// Channel
 // ─────────────────────────────────────────────────────────────
-protected:
-	/** 실제 CCTV 영상을 RT_CCTV로 촬영하는 Actor입니다. */
-	UPROPERTY(EditInstanceOnly, Category = "변수|CCTV")
-	TObjectPtr<ATBSceneCaptureActor> CaptureRig;
-
-	/** 각 장소의 CCTV 시점을 나타내는 CameraActor 배열입니다. */
-	UPROPERTY(EditInstanceOnly, Category = "변수|CCTV")
-	TArray<TObjectPtr<ACameraActor>> CCTVCameras;
-
-	/** 카메라 보간 완료 후 표시할 CCTV Widget 클래스입니다. */
-	UPROPERTY(EditDefaultsOnly, Category = "변수|CCTV")
-	TSubclassOf<UTBCCTVWidget> CCTVWidgetClass;
-
 private:
-	int32 CurrentCCTVIndex = INDEX_NONE;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTBCCTVWidget> CCTVWidget;
-
-	TWeakObjectPtr<ATBPlayerController> ActivePlayerController;
+	/** 이 버튼이 선택할 CCTVCameras 배열의 인덱스입니다. */
+	UPROPERTY(EditAnywhere, Category = "변수|CCTV", meta = (ClampMin = "0"))
+	int32 ChannelIndex = INDEX_NONE;
 };

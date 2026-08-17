@@ -28,7 +28,8 @@ public:
 	/** SceneCaptureComponent의 캡처 활성화 여부를 설정합니다. */
 	void SetCaptureEnabled(bool bEnabled);
 	
-	
+	/** CameraActor의 위치, 회전, FOV를 SceneCapture에 적용하고 화면을 갱신합니다. */
+	bool CaptureFromCamera(const ACameraActor* CameraActor);
 	
 // ─────────────────────────────────────────────────────────────
 // Actor Interface
