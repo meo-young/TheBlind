@@ -1,11 +1,12 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SceneCaptureComponent2D.h"
 #include "GameFramework/Actor.h"
 #include "TBSceneCaptureActor.generated.h"
 
+class ACameraActor;
 class UCameraComponent;
+class USceneCaptureComponent2D;
 
 UCLASS()
 class THEBLIND_API ATBSceneCaptureActor : public AActor
@@ -14,29 +15,20 @@ class THEBLIND_API ATBSceneCaptureActor : public AActor
 
 // ─────────────────────────────────────────────────────────────
 // Actor Interface
-// ─────────────────────────────────────────────────────────────	
+// ─────────────────────────────────────────────────────────────
 public:
 	ATBSceneCaptureActor();
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
-	
-	
-	
+
+
 // ─────────────────────────────────────────────────────────────
-// Actor Interface
-// ─────────────────────────────────────────────────────────────	
+// CCTV Capture
+// ─────────────────────────────────────────────────────────────
 public:
-	/** SceneCaptureComponent의 캡처 활성화 여부를 설정합니다. */
-	void SetCaptureEnabled(bool bEnabled);
-	
 	/** CameraActor의 위치, 회전, FOV를 SceneCapture에 적용하고 화면을 갱신합니다. */
-	bool CaptureFromCamera(const ACameraActor* CameraActor);
+	void CaptureFromCamera(const ACameraActor& CameraActor);
 
-
-// ─────────────────────────────────────────────────────────────
-// Texture Streaming
-// ─────────────────────────────────────────────────────────────
-public:
 	/** 현재 SceneCapture 위치의 텍스처 스트리밍 요청 활성화 여부를 설정합니다. */
 	void SetTextureStreamingViewEnabled(bool bEnabled);
 
@@ -44,27 +36,24 @@ private:
 	/** 현재 SceneCapture 위치를 고해상도 텍스처 스트리밍 시점으로 등록합니다. */
 	void RegisterTextureStreamingView() const;
 
-	/** 현재 SceneCapture 위치를 텍스처 스트리밍 시점으로 등록할지 나타냅니다. */
-	bool bTextureStreamingViewEnabled = false;
-	
+
 // ─────────────────────────────────────────────────────────────
-// Actor Interface
-// ─────────────────────────────────────────────────────────────	
+// Components
+// ─────────────────────────────────────────────────────────────
 protected:
-	/** 씬 캡쳐 컴포넌트가 어떤 장면을 캡쳐하는지 볼 수 있게 하는 카메라입니다. 이 카메라는 씬 캡처 컴포넌트와 동일한 위치에 배치되어야 합니다. */
+	/** SceneCaptureComponent의 촬영 구도를 에디터에서 확인하기 위한 카메라입니다. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "변수")
 	TObjectPtr<UCameraComponent> FakeCameraComponent;
 
-	/** 씬 캡처 컴포넌트입니다. 이 컴포넌트가 장면을 캡처하여 텍스처로 렌더링합니다. */
+	/** 장면을 RenderTarget으로 촬영하는 SceneCapture 컴포넌트입니다. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "변수")
 	TObjectPtr<USceneCaptureComponent2D> SceneCaptureComponent;
-	
-	
-	
-// ─────────────────────────────────────────────────────────────	
-// Getter
-// ─────────────────────────────────────────────────────────────	
-public:
-	FORCEINLINE UTextureRenderTarget2D* GetRenderTarget() const { return SceneCaptureComponent ? SceneCaptureComponent->TextureTarget : nullptr; };
-	
+
+
+// ─────────────────────────────────────────────────────────────
+// Runtime State
+// ─────────────────────────────────────────────────────────────
+private:
+	/** 현재 SceneCapture 위치를 텍스처 스트리밍 시점으로 등록할지 나타냅니다. */
+	bool bTextureStreamingViewEnabled = false;
 };

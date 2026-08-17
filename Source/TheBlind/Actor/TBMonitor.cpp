@@ -1,7 +1,6 @@
 #include "TBMonitor.h"
 #include "TBSceneCaptureActor.h"
 #include "Camera/CameraActor.h"
-#include "Camera/PlayerCameraManager.h"
 #include "Character/Player/TBPlayerController.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UI/Widget/CCTV/TBCCTVWidget.h"
@@ -26,7 +25,7 @@ void ATBMonitor::BeginPlay()
 	Super::BeginPlay();
 
 	MonitorMaterialInstance = Monitor->CreateDynamicMaterialInstance(0);
-	if (!IsValid(MonitorMaterialInstance))
+	if (!MonitorMaterialInstance)
 	{
 		UE_LOG(LogTemp, Error, TEXT("모니터 노이즈 초기화 실패: %s의 Element 0에서 Dynamic Material Instance를 생성하지 못했습니다."), *GetNameSafe(this));
 	}
@@ -46,7 +45,7 @@ void ATBMonitor::BeginPlay()
 
 	CCTVWidgetComponent->InitWidget();
 	CCTVWidget = Cast<UTBCCTVWidget>(CCTVWidgetComponent->GetUserWidgetObject());
-	if (!IsValid(CCTVWidget))
+	if (!CCTVWidget)
 	{
 		UE_LOG(LogTemp, Error, TEXT("CCTV Widget 초기화 실패: %s의 CCTVWidgetComponent에 TBCCTVWidget 기반 Widget Class가 설정되지 않았습니다."), *GetNameSafe(this));
 		return;
@@ -70,7 +69,6 @@ bool ATBMonitor::Interact(ATBPlayerController& PC)
 	}
 
 	PC.SetActiveMonitor(this);
-
 	if (!Super::Interact(PC))
 	{
 		PC.SetActiveMonitor(nullptr);
@@ -78,36 +76,6 @@ bool ATBMonitor::Interact(ATBPlayerController& PC)
 		return false;
 	}
 
-	return true;
-}
-
-bool ATBMonitor::SelectCCTV(const int32 Index)
-{
-	if (!IsValid(CaptureRig))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CCTV 선택 실패: %s에 필수 CaptureRig가 지정되지 않았습니다."), *GetNameSafe(this));
-		return false;
-	}
-
-	if (!CCTVCameras.IsValidIndex(Index))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 실패: 잘못된 인덱스입니다. Index=%d, CameraCount=%d"), Index, CCTVCameras.Num());
-		return false;
-	}
-
-	ACameraActor* SelectedCamera = CCTVCameras[Index];
-	if (!IsValid(SelectedCamera))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 실패: CCTVCameras[%d]가 지정되지 않았습니다."), Index);
-		return false;
-	}
-
-	if (!CaptureRig->CaptureFromCamera(SelectedCamera))
-	{
-		return false;
-	}
-
-	CurrentCCTVIndex = Index;
 	return true;
 }
 
@@ -120,17 +88,12 @@ bool ATBMonitor::RequestCCTVSelection(const int32 Index)
 
 	if (bCCTVChannelTransitionInProgress)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 무시: 채널 전환이 이미 진행 중입니다. Index=%d"), Index);
 		return false;
 	}
 
-	if (!SetNoiseEnabled(true))
-	{
-		return false;
-	}
-
+	SetNoiseEnabled(true);
 	bCCTVChannelTransitionInProgress = true;
-	if (IsValid(CCTVWidget))
+	if (CCTVWidget)
 	{
 		CCTVWidget->SetIsEnabled(false);
 	}
@@ -152,56 +115,45 @@ bool ATBMonitor::RequestCCTVSelection(const int32 Index)
 	return true;
 }
 
-bool ATBMonitor::SetNoiseEnabled(const bool bEnabled)
+bool ATBMonitor::SelectCCTV(const int32 Index)
 {
-	if (!IsValid(MonitorMaterialInstance))
+	if (!CaptureRig)
 	{
-		UE_LOG(LogTemp, Error, TEXT("모니터 노이즈 변경 실패: %s의 Dynamic Material Instance가 유효하지 않습니다."), *GetNameSafe(this));
+		UE_LOG(LogTemp, Error, TEXT("CCTV 선택 실패: %s에 필수 CaptureRig가 지정되지 않았습니다."), *GetNameSafe(this));
 		return false;
 	}
 
-	MonitorMaterialInstance->SetScalarParameterValue(NoiseEnabledParameterName, bEnabled ? 1.0f : 0.0f);
-	bNoiseEnabled = bEnabled;
+	if (!CCTVCameras.IsValidIndex(Index))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 실패: 잘못된 인덱스입니다. Index=%d, CameraCount=%d"), Index, CCTVCameras.Num());
+		return false;
+	}
+
+	ACameraActor* SelectedCamera = CCTVCameras[Index];
+	if (!SelectedCamera)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 실패: CCTVCameras[%d]가 지정되지 않았습니다."), Index);
+		return false;
+	}
+
+	CaptureRig->CaptureFromCamera(*SelectedCamera);
+	CurrentCCTVIndex = Index;
 	return true;
 }
 
-void ATBMonitor::HandleRemoteViewEntered()
+void ATBMonitor::SetNoiseEnabled(const bool bEnabled)
 {
-	if (IsValid(CaptureRig))
+	if (MonitorMaterialInstance)
 	{
-		CaptureRig->SetTextureStreamingViewEnabled(true);
+		MonitorMaterialInstance->SetScalarParameterValue(NoiseEnabledParameterName, bEnabled ? 1.0f : 0.0f);
 	}
-
-	SetNoiseEnabled(false);
-	OpenCCTVWidget();
-}
-
-void ATBMonitor::HandleRemoteViewExitStarted()
-{
-	CancelCCTVChannelTransition();
-	if (IsValid(CaptureRig))
-	{
-		CaptureRig->SetTextureStreamingViewEnabled(false);
-	}
-	SetNoiseEnabled(true);
-	CloseCCTVWidget();
-}
-
-void ATBMonitor::HandleRemoteViewExited()
-{
-	CancelCCTVChannelTransition();
-	if (IsValid(CaptureRig))
-	{
-		CaptureRig->SetTextureStreamingViewEnabled(false);
-	}
-	CloseCCTVWidget();
 }
 
 void ATBMonitor::FinishCCTVChannelTransition()
 {
 	GetWorldTimerManager().ClearTimer(CCTVChannelTransitionTimerHandle);
 	bCCTVChannelTransitionInProgress = false;
-	if (IsValid(CCTVWidget))
+	if (CCTVWidget)
 	{
 		CCTVWidget->SetIsEnabled(true);
 	}
@@ -213,34 +165,48 @@ void ATBMonitor::CancelCCTVChannelTransition()
 {
 	GetWorldTimerManager().ClearTimer(CCTVChannelTransitionTimerHandle);
 	bCCTVChannelTransitionInProgress = false;
-	if (IsValid(CCTVWidget))
+	if (CCTVWidget)
 	{
 		CCTVWidget->SetIsEnabled(true);
 	}
 }
 
-bool ATBMonitor::OpenCCTVWidget()
+void ATBMonitor::HandleRemoteViewEntered()
 {
-	if (!IsValid(CCTVWidgetComponent) || !IsValid(CCTVWidget))
+	CaptureRig->SetTextureStreamingViewEnabled(true);
+	SetNoiseEnabled(false);
+	OpenCCTVWidget();
+}
+
+void ATBMonitor::HandleRemoteViewExitStarted()
+{
+	CancelCCTVChannelTransition();
+	CaptureRig->SetTextureStreamingViewEnabled(false);
+	SetNoiseEnabled(true);
+	CloseCCTVWidget();
+}
+
+void ATBMonitor::HandleRemoteViewExited()
+{
+	CancelCCTVChannelTransition();
+	CaptureRig->SetTextureStreamingViewEnabled(false);
+	CloseCCTVWidget();
+}
+
+void ATBMonitor::OpenCCTVWidget()
+{
+	if (!CCTVWidget)
 	{
-		UE_LOG(LogTemp, Error, TEXT("CCTV Widget 표시 실패: %s의 CCTVWidgetComponent가 초기화되지 않았습니다."), *GetNameSafe(this));
-		return false;
+		return;
 	}
 
 	CCTVWidgetComponent->SetHiddenInGame(false);
 	CCTVWidgetComponent->SetVisibility(true, true);
 	CCTVWidgetComponent->SetComponentTickEnabled(true);
 	CCTVWidgetComponent->RequestRedraw();
-	return true;
 }
 
 void ATBMonitor::CloseCCTVWidget()
 {
-	if (!IsValid(CCTVWidgetComponent))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CCTV Widget 숨김 실패: %s의 CCTVWidgetComponent가 유효하지 않습니다."), *GetNameSafe(this));
-		return;
-	}
-
 	CCTVWidgetComponent->SetVisibility(false, true);
 }

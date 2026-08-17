@@ -1,4 +1,4 @@
-﻿#include "TBPlayerController.h"
+#include "TBPlayerController.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
@@ -7,10 +7,7 @@
 #include "AbilitySystem/TBAbilitySystemComponent.h"
 #include "Actor/TBMonitor.h"
 #include "Camera/TBPlayerCameraManager.h"
-#include "Engine/Level.h"
-#include "Engine/LevelStreaming.h"
 #include "Input/TBInputComponent.h"
-#include "Misc/PackageName.h"
 #include "Subsystem/RenderingQualitySubsystem.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 
@@ -19,17 +16,26 @@ ATBPlayerController::ATBPlayerController()
 	PlayerCameraManagerClass = ATBPlayerCameraManager::StaticClass();
 }
 
+void ATBPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ATBPlayerCameraManager* CameraManager = CastChecked<ATBPlayerCameraManager>(PlayerCameraManager);
+	CameraManager->OnCameraTransitionFinished().AddUObject(this, &ThisClass::HandleCameraTransitionFinished);
+
+	bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+	SetInputMode(InputMode);
+}
+
 void ATBPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
 	UTBInputComponent* IC = CastChecked<UTBInputComponent>(InputComponent);
-
-	IC->BindAbilityAction(
-		ControllerInputConfig,
-		this,
-		&ThisClass::Input_AbilityInputTagPressed,
-		&ThisClass::Input_AbilityInputTagReleased);
+	IC->BindAbilityAction(ControllerInputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased);
 }
 
 void ATBPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
@@ -38,7 +44,7 @@ void ATBPlayerController::PostProcessInput(const float DeltaTime, const bool bGa
 	{
 		if (UTBAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
 		{
-			ASC->ProcessAbilityInput(DeltaTime,bGamePaused);
+			ASC->ProcessAbilityInput(DeltaTime, bGamePaused);
 		}
 	}
 
@@ -67,83 +73,13 @@ bool ATBPlayerController::InputKey(const FInputKeyEventArgs& Params)
 			return true;
 		}
 	}
-	
+
 	return Super::InputKey(Params);
-}
-
-void ATBPlayerController::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (ATBPlayerCameraManager* CameraManager = Cast<ATBPlayerCameraManager>(PlayerCameraManager))
-	{
-		CameraManager->OnCameraTransitionFinished().AddUObject(
-			this,
-			&ThisClass::HandleCameraTransitionFinished);
-	}
-
-	bShowMouseCursor = true;
-
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-	SetInputMode(InputMode);
 }
 
 void ATBPlayerController::SetActiveMonitor(ATBMonitor* InMonitor)
 {
 	ActiveMonitor = InMonitor;
-}
-
-void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
-{
-	if (InputTag.MatchesTagExact(TBGameplayTags::InputTag_RemoteBack))
-	{
-		if (ATBPlayerCameraManager* CameraManager = Cast<ATBPlayerCameraManager>(PlayerCameraManager))
-		{
-			ATBMonitor* Monitor = ActiveMonitor.Get();
-			if (IsValid(Monitor))
-			{
-				Monitor->HandleRemoteViewExitStarted();
-			}
-
-			if (CameraManager->ReverseCameraTransition())
-			{
-				SetRemoteViewInputEnabled(false);
-				return;
-			}
-
-			if (IsValid(Monitor))
-			{
-				Monitor->HandleRemoteViewEntered();
-			}
-		}
-		return;
-	}
-
-	if (const ATBPlayerState* PS = GetPlayerState<ATBPlayerState>())
-	{
-		if (UTBAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
-		{
-			ASC->AbilityInputTagPressed(InputTag);
-		}
-	}
-}
-
-void ATBPlayerController::Input_AbilityInputTagReleased(FGameplayTag InputTag)
-{
-	if (InputTag.MatchesTagExact(TBGameplayTags::InputTag_RemoteBack))
-	{
-		return;
-	}
-
-	if (const ATBPlayerState* PS = GetPlayerState<ATBPlayerState>())
-	{
-		if (UTBAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
-		{
-			ASC->AbilityInputTagReleased(InputTag);
-		}
-	}
 }
 
 void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransitionDirection FinishedDirection)
@@ -172,11 +108,7 @@ void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransiti
 			FGameplayEventData Payload;
 			Payload.EventTag = TBGameplayTags::GameplayEvent_Interact_Finished;
 			Payload.Instigator = PlayerPawn;
-
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-				PlayerPawn,
-				TBGameplayTags::GameplayEvent_Interact_Finished,
-				Payload);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerPawn, TBGameplayTags::GameplayEvent_Interact_Finished, Payload);
 		}
 	}
 }
@@ -184,14 +116,14 @@ void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransiti
 void ATBPlayerController::SetRemoteViewInputEnabled(const bool bEnabled)
 {
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	if (!IsValid(LocalPlayer))
+	if (!LocalPlayer)
 	{
 		return;
 	}
 
 	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	const UInputMappingContext* MappingContext = RemoteViewIMC.LoadSynchronous();
-	if (!IsValid(InputSubsystem) || !IsValid(MappingContext))
+	if (!InputSubsystem || !MappingContext)
 	{
 		return;
 	}
@@ -210,4 +142,53 @@ void ATBPlayerController::SetRemoteViewInputEnabled(const bool bEnabled)
 	FModifyContextOptions Options;
 	Options.bIgnoreAllPressedKeysUntilRelease = true;
 	InputSubsystem->AddMappingContext(MappingContext, 1, Options);
+}
+
+void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
+{
+	if (InputTag.MatchesTagExact(TBGameplayTags::InputTag_RemoteBack))
+	{
+		ATBPlayerCameraManager* CameraManager = CastChecked<ATBPlayerCameraManager>(PlayerCameraManager);
+		ATBMonitor* Monitor = ActiveMonitor.Get();
+		if (Monitor)
+		{
+			Monitor->HandleRemoteViewExitStarted();
+		}
+
+		if (CameraManager->ReverseCameraTransition())
+		{
+			SetRemoteViewInputEnabled(false);
+			return;
+		}
+
+		if (Monitor)
+		{
+			Monitor->HandleRemoteViewEntered();
+		}
+		return;
+	}
+
+	if (const ATBPlayerState* PS = GetPlayerState<ATBPlayerState>())
+	{
+		if (UTBAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			ASC->AbilityInputTagPressed(InputTag);
+		}
+	}
+}
+
+void ATBPlayerController::Input_AbilityInputTagReleased(FGameplayTag InputTag)
+{
+	if (InputTag.MatchesTagExact(TBGameplayTags::InputTag_RemoteBack))
+	{
+		return;
+	}
+
+	if (const ATBPlayerState* PS = GetPlayerState<ATBPlayerState>())
+	{
+		if (UTBAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			ASC->AbilityInputTagReleased(InputTag);
+		}
+	}
 }

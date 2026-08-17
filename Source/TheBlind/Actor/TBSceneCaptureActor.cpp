@@ -1,4 +1,4 @@
-﻿#include "TBSceneCaptureActor.h"
+#include "TBSceneCaptureActor.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -20,19 +20,15 @@ ATBSceneCaptureActor::ATBSceneCaptureActor()
 
 	SceneCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCaptureComponent"));
 	SceneCaptureComponent->SetupAttachment(FakeCameraComponent);
-
-	// SceneColor는 포스트 프로세스 이전 버퍼이므로 FinalColor를 캡처해야 후처리 결과가 포함됩니다.
 	SceneCaptureComponent->CaptureSource = SCS_FinalColorLDR;
 	SceneCaptureComponent->ShowFlags.SetPostProcessing(true);
 	SceneCaptureComponent->PostProcessBlendWeight = 1.0f;
-
 	SceneCaptureComponent->SetActive(true);
 }
 
 void ATBSceneCaptureActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
 	SceneCaptureComponent->SetActive(true);
 	SceneCaptureComponent->CaptureScene();
 }
@@ -43,32 +39,9 @@ void ATBSceneCaptureActor::Tick(const float DeltaSeconds)
 	RegisterTextureStreamingView();
 }
 
-void ATBSceneCaptureActor::SetCaptureEnabled(bool bEnabled)
+void ATBSceneCaptureActor::CaptureFromCamera(const ACameraActor& CameraActor)
 {
-	SceneCaptureComponent->SetActive(bEnabled);
-}
-
-bool ATBSceneCaptureActor::CaptureFromCamera(const ACameraActor* CameraActor)
-{
-	if (!IsValid(CameraActor))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 캡처 실패: CameraActor가 유효하지 않습니다."));
-		return false;
-	}
-
-	if (!IsValid(SceneCaptureComponent))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CCTV 캡처 실패: %s에 필수 SceneCaptureComponent가 없습니다."), *GetNameSafe(this));
-		return false;
-	}
-
-	const UCameraComponent* SourceCamera = CameraActor->GetCameraComponent();
-	if (!IsValid(SourceCamera))
-	{
-		UE_LOG(LogTemp, Error, TEXT("CCTV 캡처 실패: %s에 필수 CameraComponent가 없습니다."), *GetNameSafe(CameraActor));
-		return false;
-	}
-
+	const UCameraComponent* SourceCamera = CameraActor.GetCameraComponent();
 	SetActorTransform(SourceCamera->GetComponentTransform(), false, nullptr, ETeleportType::TeleportPhysics);
 	SceneCaptureComponent->FOVAngle = SourceCamera->FieldOfView;
 	SceneCaptureComponent->bCameraCutThisFrame = true;
@@ -79,8 +52,6 @@ bool ATBSceneCaptureActor::CaptureFromCamera(const ACameraActor* CameraActor)
 	{
 		SceneCaptureComponent->CaptureScene();
 	}
-
-	return true;
 }
 
 void ATBSceneCaptureActor::SetTextureStreamingViewEnabled(const bool bEnabled)
@@ -91,7 +62,7 @@ void ATBSceneCaptureActor::SetTextureStreamingViewEnabled(const bool bEnabled)
 
 void ATBSceneCaptureActor::RegisterTextureStreamingView() const
 {
-	if (!bTextureStreamingViewEnabled || !IsValid(SceneCaptureComponent) || !IsValid(SceneCaptureComponent->TextureTarget))
+	if (!bTextureStreamingViewEnabled || !SceneCaptureComponent->TextureTarget)
 	{
 		return;
 	}
