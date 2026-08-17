@@ -21,7 +21,6 @@ void URenderingQualitySubsystem::ApplyRenderingQualityLevel(ERenderingQualityLev
 	
 	Settings->SetViewDistanceQuality(0);
 	Settings->SetGlobalIlluminationQuality(2);
-	Settings->SetTextureQuality(0);
 	Settings->SetFoliageQuality(0);
 	Settings->SetVisualEffectQuality(0);
 	Settings->SetShadingQuality(0);
@@ -33,14 +32,17 @@ void URenderingQualitySubsystem::ApplyRenderingQualityLevel(ERenderingQualityLev
 	switch (QualityLevel)
 	{
 		case ERenderingQualityLevel::Low:
+			Settings->SetTextureQuality(0);
 			SetScreenResolution(50.0f);
 		break;
 	
 		case ERenderingQualityLevel::Medium:
+			Settings->SetTextureQuality(2);
 			SetScreenResolution(75.0f);
 		break;
 		
 		case ERenderingQualityLevel::High:
+			Settings->SetTextureQuality(3);
 			SetScreenResolution(100.0f);
 		break;
 		

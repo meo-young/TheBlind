@@ -18,6 +18,7 @@ class THEBLIND_API ATBSceneCaptureActor : public AActor
 public:
 	ATBSceneCaptureActor();
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	
 	
 	
@@ -30,6 +31,21 @@ public:
 	
 	/** CameraActor의 위치, 회전, FOV를 SceneCapture에 적용하고 화면을 갱신합니다. */
 	bool CaptureFromCamera(const ACameraActor* CameraActor);
+
+
+// ─────────────────────────────────────────────────────────────
+// Texture Streaming
+// ─────────────────────────────────────────────────────────────
+public:
+	/** 현재 SceneCapture 위치의 텍스처 스트리밍 요청 활성화 여부를 설정합니다. */
+	void SetTextureStreamingViewEnabled(bool bEnabled);
+
+private:
+	/** 현재 SceneCapture 위치를 고해상도 텍스처 스트리밍 시점으로 등록합니다. */
+	void RegisterTextureStreamingView() const;
+
+	/** 현재 SceneCapture 위치를 텍스처 스트리밍 시점으로 등록할지 나타냅니다. */
+	bool bTextureStreamingViewEnabled = false;
 	
 // ─────────────────────────────────────────────────────────────
 // Actor Interface
