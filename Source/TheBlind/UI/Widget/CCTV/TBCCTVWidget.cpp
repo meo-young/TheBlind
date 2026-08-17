@@ -73,5 +73,5 @@ void UTBCCTVWidget::HandleChannelSelected(const int32 ChannelIndex)
 		return;
 	}
 
-	Monitor->SelectCCTV(ChannelIndex);
+	Monitor->RequestCCTVSelection(ChannelIndex);
 }

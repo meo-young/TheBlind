@@ -5,6 +5,7 @@
 #include "TBGameplayTags.h"
 #include "TBPlayerState.h"
 #include "AbilitySystem/TBAbilitySystemComponent.h"
+#include "Actor/TBMonitor.h"
 #include "Camera/TBPlayerCameraManager.h"
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
@@ -89,6 +90,10 @@ void ATBPlayerController::BeginPlay()
 	SetInputMode(InputMode);
 }
 
+void ATBPlayerController::SetActiveMonitor(ATBMonitor* InMonitor)
+{
+	ActiveMonitor = InMonitor;
+}
 
 void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
@@ -96,9 +101,21 @@ void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 	{
 		if (ATBPlayerCameraManager* CameraManager = Cast<ATBPlayerCameraManager>(PlayerCameraManager))
 		{
+			ATBMonitor* Monitor = ActiveMonitor.Get();
+			if (IsValid(Monitor))
+			{
+				Monitor->HandleRemoteViewExitStarted();
+			}
+
 			if (CameraManager->ReverseCameraTransition())
 			{
 				SetRemoteViewInputEnabled(false);
+				return;
+			}
+
+			if (IsValid(Monitor))
+			{
+				Monitor->HandleRemoteViewEntered();
 			}
 		}
 		return;
@@ -134,12 +151,21 @@ void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransiti
 	if (FinishedDirection == ETBCameraTransitionDirection::Forward)
 	{
 		SetRemoteViewInputEnabled(true);
+		if (ATBMonitor* Monitor = ActiveMonitor.Get())
+		{
+			Monitor->HandleRemoteViewEntered();
+		}
 		return;
 	}
 
 	if (FinishedDirection == ETBCameraTransitionDirection::Reverse)
 	{
 		SetRemoteViewInputEnabled(false);
+		if (ATBMonitor* Monitor = ActiveMonitor.Get())
+		{
+			Monitor->HandleRemoteViewExited();
+		}
+		ActiveMonitor.Reset();
 
 		if (APawn* PlayerPawn = GetPawn())
 		{

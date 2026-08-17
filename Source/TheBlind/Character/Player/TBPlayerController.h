@@ -6,6 +6,7 @@
 #include "TBPlayerController.generated.h"
 
 class ATBPossessableActor;
+class ATBMonitor;
 class UTBInputConfig;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -26,8 +27,14 @@ public:
 	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
 	virtual void BeginPlay() override;
 
-	
-	
+// ─────────────────────────────────────────────────────────────
+// Remote View
+// ─────────────────────────────────────────────────────────────
+public:
+	/** 현재 원격 화면을 표시하는 모니터를 설정합니다. */
+	void SetActiveMonitor(ATBMonitor* InMonitor);
+
+
 // ─────────────────────────────────────────────────────────────
 // Input
 // ─────────────────────────────────────────────────────────────	
@@ -46,4 +53,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "변수")
 	TSoftObjectPtr<UInputMappingContext> RemoteViewIMC;
+
+	/** 현재 원격 화면을 표시하는 모니터입니다. */
+	TWeakObjectPtr<ATBMonitor> ActiveMonitor;
 };
