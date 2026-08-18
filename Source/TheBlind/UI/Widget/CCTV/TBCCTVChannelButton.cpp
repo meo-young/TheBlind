@@ -2,6 +2,7 @@
 
 void UTBCCTVChannelButton::InitializeChannelButton()
 {
+	// 중복 바인딩을 제거한 뒤 버튼 클릭 콜백을 연결합니다.
 	OnClicked.RemoveDynamic(this, &ThisClass::HandleClicked);
 	OnClicked.AddDynamic(this, &ThisClass::HandleClicked);
 }
@@ -13,11 +14,5 @@ void UTBCCTVChannelButton::ShutdownChannelButton()
 
 void UTBCCTVChannelButton::HandleClicked()
 {
-	if (ChannelIndex == INDEX_NONE)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 버튼 클릭 실패: %s에 ChannelIndex가 설정되지 않았습니다."), *GetNameSafe(this));
-		return;
-	}
-
-	ChannelSelectedEvent.Broadcast(ChannelIndex);
+	ChannelSelectedEvent.Broadcast(TargetLocation);
 }

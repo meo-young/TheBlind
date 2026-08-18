@@ -24,7 +24,11 @@ public class TheBlind : ModuleRules
 			"Paper2D"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"LevelSequence",
+			"MovieScene"
+		});
 		
 		PublicIncludePaths.AddRange(new string[] { "TheBlind" });
 

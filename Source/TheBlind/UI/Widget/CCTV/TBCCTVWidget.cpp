@@ -9,6 +9,7 @@ void UTBCCTVWidget::NativeConstruct()
 
 	ChannelButtons.Reset();
 
+	// WidgetTree의 CCTV 버튼을 수집하고 장소 선택 이벤트를 연결합니다.
 	WidgetTree->ForEachWidget([this](UWidget* Widget)
 	{
 		UTBCCTVChannelButton* ChannelButton = Cast<UTBCCTVChannelButton>(Widget);
@@ -31,6 +32,7 @@ void UTBCCTVWidget::NativeConstruct()
 
 void UTBCCTVWidget::NativeDestruct()
 {
+	// 수집한 CCTV 버튼의 이벤트 연결을 모두 해제합니다.
 	for (UTBCCTVChannelButton* ChannelButton : ChannelButtons)
 	{
 		if (!IsValid(ChannelButton))
@@ -59,7 +61,7 @@ void UTBCCTVWidget::SetMonitor(ATBMonitor* InMonitor)
 	Monitor = InMonitor;
 }
 
-void UTBCCTVWidget::HandleChannelSelected(const int32 ChannelIndex)
+void UTBCCTVWidget::HandleChannelSelected(const ETBLocation Location)
 {
 	if (!IsValid(Monitor))
 	{
@@ -67,11 +69,11 @@ void UTBCCTVWidget::HandleChannelSelected(const int32 ChannelIndex)
 		return;
 	}
 
-	if (ChannelIndex < 0 || ChannelIndex >= Monitor->GetCCTVCount())
+	if (!Monitor->HasCCTV(Location))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CCTV 선택 실패: 버튼의 ChannelIndex가 잘못되었습니다. Index=%d, CameraCount=%d"), ChannelIndex, Monitor->GetCCTVCount());
+		UE_LOG(LogTemp, Error, TEXT("CCTV 선택 실패: %s 장소에 유효한 CameraActor가 등록되지 않았습니다."), *UEnum::GetValueAsString(Location));
 		return;
 	}
 
-	Monitor->RequestCCTVSelection(ChannelIndex);
+	Monitor->RequestCCTVSelection(Location);
 }
