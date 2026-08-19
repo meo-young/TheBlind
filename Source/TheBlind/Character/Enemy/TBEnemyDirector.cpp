@@ -1,11 +1,22 @@
 #include "TBEnemyDirector.h"
 #include "Actor/TBMonitor.h"
+#include "Core/TBGameMode.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 
 void ATBEnemyDirector::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (!CCTVMonitor)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Enemy 이동 노이즈 초기화 실패: %s에 CCTVMonitor가 설정되지 않았습니다."), *GetNameSafe(this));
+	}
+
+	if (!PlayerDeathCamera)
+	{
+		UE_LOG(LogTemp, Error, TEXT("플레이어 사망 연출 초기화 실패: %s에 PlayerDeathCamera가 설정되지 않았습니다."), *GetNameSafe(this));
+	}
 
 	// Enemy마다 시작 장소의 시퀀스를 재생하고 독립적인 이동 타이머를 예약합니다.
 	for (int32 EnemyIndex = 0; EnemyIndex < EnemyStates.Num(); ++EnemyIndex)
@@ -19,7 +30,13 @@ void ATBEnemyDirector::BeginPlay()
 			continue;
 		}
 
+		if (!EnemyState.DeathSequenceActor)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Enemy 사망 연출 초기화 실패: %s에 DeathSequenceActor가 설정되지 않았습니다."), *GetNameSafe(EnemyState.Enemy));
+		}
+
 		PlayEnemyLocationSequence(EnemyState, EnemyState.StartLocation);
+		UpdatePlayerDeathTimer(EnemyState);
 		ScheduleEnemyMove(EnemyIndex);
 	}
 }
@@ -54,6 +71,11 @@ TArray<ETBLocation> ATBEnemyDirector::GetReachableLocations(const AActor& Enemy)
 
 bool ATBEnemyDirector::TryMoveEnemy(AActor& Enemy, const ETBLocation Destination)
 {
+	if (bEnemyMovementStopped)
+	{
+		return false;
+	}
+
 	FTBEnemyLocationState* EnemyState = FindEnemyState(Enemy);
 	if (!EnemyState)
 	{
@@ -73,15 +95,23 @@ bool ATBEnemyDirector::TryMoveEnemy(AActor& Enemy, const ETBLocation Destination
 	}
 
 	EnemyState->CurrentLocation = Destination;
+	UpdatePlayerDeathTimer(*EnemyState);
 	if (CCTVMonitor)
 	{
+		// 시청 중인 장소에서 Enemy가 나가거나 들어오는 경우 모두 이동 노이즈를 표시합니다.
 		CCTVMonitor->ShowEnemyMovementNoise(PreviousLocation);
+		CCTVMonitor->ShowEnemyMovementNoise(Destination);
 	}
 	return true;
 }
 
 void ATBEnemyDirector::ScheduleEnemyMove(const int32 EnemyIndex)
 {
+	if (bEnemyMovementStopped)
+	{
+		return;
+	}
+
 	FTBEnemyLocationState& EnemyState = EnemyStates[EnemyIndex];
 
 	// 최대 시간이 최소 시간보다 작으면 최소 시간을 사용합니다.
@@ -96,6 +126,11 @@ void ATBEnemyDirector::ScheduleEnemyMove(const int32 EnemyIndex)
 
 void ATBEnemyDirector::HandleEnemyMoveTimer(const int32 EnemyIndex)
 {
+	if (bEnemyMovementStopped)
+	{
+		return;
+	}
+
 	FTBEnemyLocationState& EnemyState = EnemyStates[EnemyIndex];
 
 	// 현재 장소와 직접 연결된 장소 중 하나를 무작위로 선택합니다.
@@ -117,6 +152,75 @@ void ATBEnemyDirector::HandleEnemyMoveTimer(const int32 EnemyIndex)
 
 	// 이동 성공 여부와 관계없이 다음 이동 시점을 다시 예약합니다.
 	ScheduleEnemyMove(EnemyIndex);
+}
+
+void ATBEnemyDirector::StopAllEnemyMovement()
+{
+	if (bEnemyMovementStopped)
+	{
+		return;
+	}
+
+	bEnemyMovementStopped = true;
+
+	// 예약된 이동과 사망 처리를 취소하고 현재 재생 중인 장소 시퀀스를 모두 중지합니다.
+	for (FTBEnemyLocationState& EnemyState : EnemyStates)
+	{
+		GetWorldTimerManager().ClearTimer(EnemyState.MoveTimerHandle);
+		GetWorldTimerManager().ClearTimer(EnemyState.PlayerDeathTimerHandle);
+
+		if (EnemyState.ActiveSequenceActor.IsValid())
+		{
+			ULevelSequencePlayer* SequencePlayer = EnemyState.ActiveSequenceActor->GetSequencePlayer();
+			if (SequencePlayer)
+			{
+				SequencePlayer->Stop();
+			}
+			EnemyState.ActiveSequenceActor.Reset();
+		}
+	}
+}
+
+bool ATBEnemyDirector::IsPlayerDeathLocation(const ETBLocation Location) const
+{
+	return Location == ETBLocation::PlayerRoomApproach1 || Location == ETBLocation::PlayerRoomApproach2;
+}
+
+void ATBEnemyDirector::UpdatePlayerDeathTimer(FTBEnemyLocationState& EnemyState)
+{
+	if (!IsPlayerDeathLocation(EnemyState.CurrentLocation))
+	{
+		GetWorldTimerManager().ClearTimer(EnemyState.PlayerDeathTimerHandle);
+		return;
+	}
+
+	// 두 위협 장소 사이에서 이동해도 기존 카운트다운을 유지합니다.
+	if (GetWorldTimerManager().IsTimerActive(EnemyState.PlayerDeathTimerHandle))
+	{
+		return;
+	}
+
+	FTimerDelegate DeathTimerDelegate;
+	DeathTimerDelegate.BindUObject(this, &ThisClass::HandlePlayerDeathTimer, EnemyState.Enemy.Get());
+	GetWorldTimerManager().SetTimer(EnemyState.PlayerDeathTimerHandle, DeathTimerDelegate, EnemyState.PlayerDeathDelay, false);
+}
+
+void ATBEnemyDirector::HandlePlayerDeathTimer(AActor* Enemy)
+{
+	FTBEnemyLocationState* EnemyState = FindEnemyState(*Enemy);
+	if (!EnemyState || !IsPlayerDeathLocation(EnemyState->CurrentLocation))
+	{
+		return;
+	}
+
+	ATBGameMode* GameMode = CastChecked<ATBGameMode>(GetWorld()->GetAuthGameMode());
+	if (!GameMode->HandlePlayerDeath(*Enemy, PlayerDeathCamera))
+	{
+		return;
+	}
+
+	StopAllEnemyMovement();
+	PlayEnemyDeathSequence(*EnemyState);
 }
 
 bool ATBEnemyDirector::PlayEnemyLocationSequence(FTBEnemyLocationState& EnemyState, const ETBLocation Location)
@@ -167,6 +271,38 @@ bool ATBEnemyDirector::PlayEnemyLocationSequence(FTBEnemyLocationState& EnemySta
 	SequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(SequencePlayer->GetStartTime().Time, EUpdatePositionMethod::Jump));
 	SequencePlayer->Play();
 	EnemyState.ActiveSequenceActor = SequenceActor;
+	return true;
+}
+
+bool ATBEnemyDirector::PlayEnemyDeathSequence(FTBEnemyLocationState& EnemyState)
+{
+	if (!EnemyState.DeathSequenceActor)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Enemy 사망 시퀀스 재생 실패: %s에 DeathSequenceActor가 설정되지 않았습니다."), *GetNameSafe(EnemyState.Enemy));
+		return false;
+	}
+
+	ULevelSequencePlayer* SequencePlayer = EnemyState.DeathSequenceActor->GetSequencePlayer();
+	if (!SequencePlayer)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Enemy 사망 시퀀스 재생 실패: %s에 Level Sequence Asset이 설정되지 않았습니다."), *GetNameSafe(EnemyState.DeathSequenceActor));
+		return false;
+	}
+
+	// 현재 장소의 시퀀스를 정지한 뒤 사망 연출 시퀀스를 처음부터 재생합니다.
+	if (EnemyState.ActiveSequenceActor.IsValid())
+	{
+		ULevelSequencePlayer* ActiveSequencePlayer = EnemyState.ActiveSequenceActor->GetSequencePlayer();
+		if (ActiveSequencePlayer)
+		{
+			ActiveSequencePlayer->Stop();
+		}
+	}
+
+	SequencePlayer->StopAtCurrentTime();
+	SequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams(SequencePlayer->GetStartTime().Time, EUpdatePositionMethod::Jump));
+	SequencePlayer->Play();
+	EnemyState.ActiveSequenceActor = EnemyState.DeathSequenceActor;
 	return true;
 }
 

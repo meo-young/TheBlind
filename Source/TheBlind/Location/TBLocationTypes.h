@@ -12,7 +12,9 @@ enum class ETBLocation : uint8
 	Living UMETA(DisplayName = "거실"),
 	Toilet UMETA(DisplayName = "화장실"),
 	Closet UMETA(DisplayName = "옷장"),
-	Basement UMETA(DisplayName = "지하실")
+	Basement UMETA(DisplayName = "지하실"),
+	PlayerRoomApproach1 UMETA(DisplayName = "플레이어 방 직전 방1"),
+	PlayerRoomApproach2 UMETA(DisplayName = "플레이어 방 직전 방2")
 };
 
 /** Enemy가 이동할 때 사용하는 장소 하나의 설정입니다. */

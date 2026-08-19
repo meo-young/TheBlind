@@ -7,6 +7,7 @@
 #include "TBEnemyDirector.generated.h"
 
 class ALevelSequenceActor;
+class ACameraActor;
 class ATBMonitor;
 
 /** 한 장소에서 선택할 수 있는 LevelSequenceActor 목록을 관리합니다. */
@@ -54,6 +55,17 @@ struct FTBEnemyLocationState
 
 	/** Enemy의 다음 장소 이동을 예약하는 타이머입니다. */
 	FTimerHandle MoveTimerHandle;
+
+	/** Enemy가 위협 장소에 진입한 뒤 플레이어가 사망하기까지의 시간입니다. */
+	UPROPERTY(EditAnywhere, Category = "변수|사망", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	float PlayerDeathDelay = 5.0f;
+
+	/** 이 Enemy가 플레이어를 사망시켰을 때 재생할 LevelSequenceActor입니다. */
+	UPROPERTY(EditAnywhere, Category = "변수|사망")
+	TObjectPtr<ALevelSequenceActor> DeathSequenceActor;
+
+	/** Enemy의 플레이어 사망 처리를 예약하는 타이머입니다. */
+	FTimerHandle PlayerDeathTimerHandle;
 };
 
 UCLASS()
@@ -96,6 +108,23 @@ private:
 	/** 전달받은 Enemy 인덱스의 이동 가능 장소를 선택하고 현재 장소를 변경합니다. */
 	void HandleEnemyMoveTimer(int32 EnemyIndex);
 
+	/** 모든 Enemy의 이동 타이머와 현재 장소 시퀀스를 중지합니다. */
+	void StopAllEnemyMovement();
+
+
+// ─────────────────────────────────────────────────────────────
+// Player Death Timer
+// ─────────────────────────────────────────────────────────────
+private:
+	/** 전달받은 장소가 플레이어 사망 카운트다운을 시작하는 장소인지 반환합니다. */
+	bool IsPlayerDeathLocation(ETBLocation Location) const;
+
+	/** Enemy의 현재 장소에 따라 플레이어 사망 타이머를 갱신합니다. */
+	void UpdatePlayerDeathTimer(FTBEnemyLocationState& EnemyState);
+
+	/** 사망 시간이 경과한 Enemy를 확인하고 플레이어 사망을 처리합니다. */
+	void HandlePlayerDeathTimer(AActor* Enemy);
+
 
 // ─────────────────────────────────────────────────────────────
 // Enemy Sequence
@@ -103,6 +132,9 @@ private:
 private:
 	/** 전달받은 장소의 LevelSequenceActor를 처음부터 재생합니다. */
 	bool PlayEnemyLocationSequence(FTBEnemyLocationState& EnemyState, ETBLocation Location);
+
+	/** 전달받은 Enemy의 사망 연출 LevelSequenceActor를 처음부터 재생합니다. */
+	bool PlayEnemyDeathSequence(FTBEnemyLocationState& EnemyState);
 
 
 // ─────────────────────────────────────────────────────────────
@@ -131,6 +163,14 @@ private:
 
 
 // ─────────────────────────────────────────────────────────────
+// Runtime State
+// ─────────────────────────────────────────────────────────────
+private:
+	/** 플레이어 사망으로 모든 Enemy 이동이 중지되었는지 나타냅니다. */
+	bool bEnemyMovementStopped = false;
+
+
+// ─────────────────────────────────────────────────────────────
 // Configuration
 // ─────────────────────────────────────────────────────────────
 protected:
@@ -141,6 +181,10 @@ protected:
 	/** Enemy 이동 노이즈를 표시할 CCTV Monitor입니다. */
 	UPROPERTY(EditInstanceOnly, Category = "변수|CCTV")
 	TObjectPtr<ATBMonitor> CCTVMonitor;
+
+	/** 플레이어 사망 연출을 촬영할 맵의 카메라입니다. */
+	UPROPERTY(EditInstanceOnly, Category = "변수|사망")
+	TObjectPtr<ACameraActor> PlayerDeathCamera;
 
 	/** 장소 상태를 각각 관리할 Enemy 목록입니다. */
 	UPROPERTY(EditInstanceOnly, Category = "변수|Enemy")
