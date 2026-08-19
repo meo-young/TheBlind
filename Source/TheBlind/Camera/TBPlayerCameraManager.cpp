@@ -1,6 +1,20 @@
 #include "TBPlayerCameraManager.h"
 #include "Camera/CameraShakeBase.h"
 
+void ATBPlayerCameraManager::CutToViewTarget(AActor& NewViewTarget)
+{
+	StopActiveCameraStepShake(true);
+
+	bIsBlendPending = false;
+	TransitionDirection = ETBCameraTransitionDirection::None;
+	OnBlendComplete().RemoveAll(this);
+	ViewTargetStack.Reset();
+	CurrentCameraStep = 0;
+
+	SetViewTarget(&NewViewTarget, FViewTargetTransitionParams());
+	SetGameCameraCutThisFrame();
+}
+
 void ATBPlayerCameraManager::StartCameraStepShake(const FTBCameraStep& CameraStep)
 {
 	StopActiveCameraStepShake(true);

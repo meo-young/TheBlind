@@ -45,6 +45,9 @@ class THEBLIND_API ATBPlayerCameraManager : public APlayerCameraManager
 // Transition State
 // ─────────────────────────────────────────────────────────────
 public:
+	/** 진행 중인 전환을 취소하고 전달받은 ViewTarget으로 즉시 전환합니다. */
+	void CutToViewTarget(AActor& NewViewTarget);
+
 	/** 하나의 카메라를 향해 보간을 시작하는 함수입니다. */
 	void BeginCameraTransition(const FTBCameraStep& TargetCam);
 
