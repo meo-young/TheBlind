@@ -66,6 +66,9 @@ struct FTBEnemyLocationState
 
 	/** Enemy의 플레이어 사망 처리를 예약하는 타이머입니다. */
 	FTimerHandle PlayerDeathTimerHandle;
+
+	/** Enemy가 다시 나타나는 시점을 예약하는 타이머입니다. */
+	FTimerHandle RelocationTimerHandle;
 };
 
 UCLASS()
@@ -82,26 +85,24 @@ public:
 
 
 // ─────────────────────────────────────────────────────────────
-// Enemy Location State
+// Enemy Relocation
 // ─────────────────────────────────────────────────────────────
 public:
-	/** 전달받은 Enemy가 Director에 등록되어 있는지 반환합니다. */
-	bool IsEnemyRegistered(const AActor& Enemy) const;
+	/** 지정 장소의 Enemy 재배치를 시작하고 성공 여부를 반환합니다. */
+	bool TryBeginEnemyRelocation(ETBLocation SourceLocation);
 
-	/** 전달받은 Enemy의 현재 장소를 OutLocation으로 반환합니다. */
-	bool TryGetEnemyLocation(const AActor& Enemy, ETBLocation& OutLocation) const;
-
-	/** 전달받은 Enemy가 현재 장소에서 이동할 수 있는 장소들을 반환합니다. */
-	TArray<ETBLocation> GetReachableLocations(const AActor& Enemy) const;
-
-	/** 전달받은 Enemy를 이동 가능한 장소로 변경합니다. */
-	bool TryMoveEnemy(AActor& Enemy, ETBLocation Destination);
+private:
+	/** 지정한 Enemy의 재배치 대기 시간을 끝내고 무작위 장소에서 다시 나타나게 합니다. */
+	void HandleEnemyRelocationTimer(int32 EnemyIndex);
 
 
 // ─────────────────────────────────────────────────────────────
 // Enemy Move Timer
 // ─────────────────────────────────────────────────────────────
 private:
+	/** 전달받은 Enemy를 선택된 장소로 이동합니다. */
+	bool TryMoveEnemy(AActor& Enemy, ETBLocation Destination);
+
 	/** 전달받은 Enemy 인덱스의 다음 장소 이동을 예약합니다. */
 	void ScheduleEnemyMove(int32 EnemyIndex);
 
@@ -130,25 +131,11 @@ private:
 // Enemy Sequence
 // ─────────────────────────────────────────────────────────────
 private:
-	/** 전달받은 장소의 LevelSequenceActor를 처음부터 재생합니다. */
+	/** 전달받은 장소의 LevelSequenceActor를 재생합니다. */
 	bool PlayEnemyLocationSequence(FTBEnemyLocationState& EnemyState, ETBLocation Location);
 
-	/** 전달받은 Enemy의 사망 연출 LevelSequenceActor를 처음부터 재생합니다. */
+	/** 전달받은 Enemy의 사망 연출 LevelSequenceActor를 재생합니다. */
 	bool PlayEnemyDeathSequence(FTBEnemyLocationState& EnemyState);
-
-
-// ─────────────────────────────────────────────────────────────
-// Location Graph
-// ─────────────────────────────────────────────────────────────
-public:
-	/** 전달받은 장소의 설정을 반환합니다. 등록되지 않은 장소라면 nullptr을 반환합니다. */
-	const FTBLocationDefinition* FindLocation(ETBLocation Location) const;
-
-	/** 출발 장소에서 도착 장소로 직접 이동할 수 있는지 반환합니다. */
-	bool IsMoveAllowed(ETBLocation From, ETBLocation To) const;
-
-	/** 전달받은 장소에서 직접 이동할 수 있는 장소들을 반환합니다. */
-	TArray<ETBLocation> GetReachableLocations(ETBLocation Location) const;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -158,17 +145,6 @@ private:
 	/** 전달받은 Enemy의 장소 상태를 반환합니다. 등록되지 않았다면 nullptr을 반환합니다. */
 	FTBEnemyLocationState* FindEnemyState(const AActor& Enemy);
 
-	/** 전달받은 Enemy의 읽기 전용 장소 상태를 반환합니다. 등록되지 않았다면 nullptr을 반환합니다. */
-	const FTBEnemyLocationState* FindEnemyState(const AActor& Enemy) const;
-
-
-// ─────────────────────────────────────────────────────────────
-// Runtime State
-// ─────────────────────────────────────────────────────────────
-private:
-	/** 플레이어 사망으로 모든 Enemy 이동이 중지되었는지 나타냅니다. */
-	bool bEnemyMovementStopped = false;
-
 
 // ─────────────────────────────────────────────────────────────
 // Configuration
@@ -177,6 +153,14 @@ protected:
 	/** 모든 Enemy가 공유하는 장소 이동 그래프입니다. */
 	UPROPERTY(EditDefaultsOnly, Category = "변수|장소")
 	TMap<ETBLocation, FTBLocationDefinition> LocationGraph;
+
+	/** 기믹으로 숨겨진 모든 Enemy가 공통으로 사용할 재등장 장소 후보입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|재배치")
+	TArray<ETBLocation> EnemyRespawnLocations;
+
+	/** Enemy가 모습을 감추고 재등장하기까지의 공통 시간입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|재배치", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	float EnemyHiddenDuration = 10.0f;
 
 	/** Enemy 이동 노이즈를 표시할 CCTV Monitor입니다. */
 	UPROPERTY(EditInstanceOnly, Category = "변수|CCTV")

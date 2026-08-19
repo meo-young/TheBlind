@@ -14,7 +14,8 @@ enum class ETBLocation : uint8
 	Closet UMETA(DisplayName = "옷장"),
 	Basement UMETA(DisplayName = "지하실"),
 	PlayerRoomApproach1 UMETA(DisplayName = "플레이어 방 직전 방1"),
-	PlayerRoomApproach2 UMETA(DisplayName = "플레이어 방 직전 방2")
+	PlayerRoomApproach2 UMETA(DisplayName = "플레이어 방 직전 방2"),
+	Hidden UMETA(DisplayName = "숨김")
 };
 
 /** Enemy가 이동할 때 사용하는 장소 하나의 설정입니다. */
