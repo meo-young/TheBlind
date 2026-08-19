@@ -23,11 +23,8 @@ void ATBPlayerController::BeginPlay()
 	ATBPlayerCameraManager* CameraManager = CastChecked<ATBPlayerCameraManager>(PlayerCameraManager);
 	CameraManager->OnCameraTransitionFinished().AddUObject(this, &ThisClass::HandleCameraTransitionFinished);
 
-	bShowMouseCursor = true;
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-	SetInputMode(InputMode);
+	// 1인칭 조작을 위해 커서를 숨기고 마우스를 게임 화면에 캡처합니다.
+	SetRemoteViewCursorEnabled(false);
 }
 
 void ATBPlayerController::SetupInputComponent()
@@ -89,6 +86,7 @@ void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransiti
 		SetRemoteViewInputEnabled(true);
 		if (ATBMonitor* Monitor = ActiveMonitor.Get())
 		{
+			SetRemoteViewCursorEnabled(true);
 			Monitor->HandleRemoteViewEntered();
 		}
 		return;
@@ -97,6 +95,7 @@ void ATBPlayerController::HandleCameraTransitionFinished(const ETBCameraTransiti
 	if (FinishedDirection == ETBCameraTransitionDirection::Reverse)
 	{
 		SetRemoteViewInputEnabled(false);
+		SetRemoteViewCursorEnabled(false);
 		if (ATBMonitor* Monitor = ActiveMonitor.Get())
 		{
 			Monitor->HandleRemoteViewExited();
@@ -144,6 +143,25 @@ void ATBPlayerController::SetRemoteViewInputEnabled(const bool bEnabled)
 	InputSubsystem->AddMappingContext(MappingContext, 1, Options);
 }
 
+void ATBPlayerController::SetRemoteViewCursorEnabled(const bool bEnabled)
+{
+	// CCTV UI를 사용할 때는 커서를 표시하고 게임과 UI가 입력을 함께 받도록 설정합니다.
+	if (bEnabled)
+	{
+		bShowMouseCursor = true;
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+		SetInputMode(InputMode);
+		return;
+	}
+
+	// 플레이어 시점에서는 커서를 숨기고 마우스 이동을 카메라 회전에 사용합니다.
+	bShowMouseCursor = false;
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+}
+
 void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
 	if (InputTag.MatchesTagExact(TBGameplayTags::InputTag_RemoteBack))
@@ -152,6 +170,7 @@ void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 		ATBMonitor* Monitor = ActiveMonitor.Get();
 		if (Monitor)
 		{
+			SetRemoteViewCursorEnabled(false);
 			Monitor->HandleRemoteViewExitStarted();
 		}
 
@@ -163,6 +182,7 @@ void ATBPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 
 		if (Monitor)
 		{
+			SetRemoteViewCursorEnabled(true);
 			Monitor->HandleRemoteViewEntered();
 		}
 		return;

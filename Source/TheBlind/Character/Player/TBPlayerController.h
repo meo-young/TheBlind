@@ -40,6 +40,9 @@ private:
 	/** 원격 화면 전용 입력 매핑 컨텍스트의 활성화 여부를 설정합니다. */
 	void SetRemoteViewInputEnabled(bool bEnabled);
 
+	/** 원격 화면 UI 사용 여부에 따라 마우스 커서와 입력 모드를 전환합니다. */
+	void SetRemoteViewCursorEnabled(bool bEnabled);
+
 
 // ─────────────────────────────────────────────────────────────
 // Ability Input
