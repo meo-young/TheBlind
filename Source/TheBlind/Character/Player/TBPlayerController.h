@@ -6,6 +6,7 @@
 #include "TBPlayerController.generated.h"
 
 class ATBMonitor;
+class IInteractable;
 class UTBInputConfig;
 class UInputMappingContext;
 enum class ETBCameraTransitionDirection : int8;
@@ -24,6 +25,14 @@ public:
 	virtual void SetupInputComponent() override;
 	virtual void PostProcessInput(float DeltaTime, bool bGamePaused) override;
 	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
+
+
+// ─────────────────────────────────────────────────────────────
+// Interaction
+// ─────────────────────────────────────────────────────────────
+public:
+	/** 카메라 중앙에서 상호작용 거리 안에 감지된 상호작용 대상을 반환합니다. */
+	IInteractable* FindInteractionTarget() const;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -66,6 +75,15 @@ protected:
 	/** 모니터 원격 화면에서 사용하는 입력 매핑 컨텍스트입니다. */
 	UPROPERTY(EditDefaultsOnly, Category = "변수|입력")
 	TSoftObjectPtr<UInputMappingContext> RemoteViewIMC;
+
+
+// ─────────────────────────────────────────────────────────────
+// Interaction Configuration
+// ─────────────────────────────────────────────────────────────
+protected:
+	/** 플레이어가 오브젝트와 상호작용할 수 있는 최대 거리입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|상호작용")
+	float InteractionRange = 100.0f;
 
 
 // ─────────────────────────────────────────────────────────────

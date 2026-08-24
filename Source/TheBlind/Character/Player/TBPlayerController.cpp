@@ -8,6 +8,7 @@
 #include "Actor/TBMonitor.h"
 #include "Camera/TBPlayerCameraManager.h"
 #include "Input/TBInputComponent.h"
+#include "Interact/Interactable.h"
 #include "Subsystem/RenderingQualitySubsystem.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 
@@ -72,6 +73,22 @@ bool ATBPlayerController::InputKey(const FInputKeyEventArgs& Params)
 	}
 
 	return Super::InputKey(Params);
+}
+
+IInteractable* ATBPlayerController::FindInteractionTarget() const
+{
+	// 현재 카메라 중앙에서 상호작용 거리까지 플레이어 Pawn을 제외하고 탐색합니다.
+	const FVector TraceStart = PlayerCameraManager->GetCameraLocation();
+	const FVector TraceEnd = TraceStart + PlayerCameraManager->GetCameraRotation().Vector() * InteractionRange;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(PlayerInteraction), false, GetPawn());
+	FHitResult HitResult;
+	if (!GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		return nullptr;
+	}
+
+	// 가장 먼저 감지된 Actor가 상호작용 인터페이스를 구현한 경우에만 반환합니다.
+	return Cast<IInteractable>(HitResult.GetActor());
 }
 
 void ATBPlayerController::SetActiveMonitor(ATBMonitor* InMonitor)

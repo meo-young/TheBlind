@@ -24,6 +24,10 @@ public:
 // Interactable Interface
 // ─────────────────────────────────────────────────────────────
 public:
+	/** 원격 카메라에 필요한 스트리밍 레벨이 준비되었는지 포함하여 상호작용 가능 여부를 반환합니다. */
+	virtual bool CanInteract() const override;
+
+	/** 설정된 카메라 시점으로 전환하여 상호작용을 시작합니다. */
 	virtual bool Interact(ATBPlayerController& PC) override;
 	
 	

@@ -25,13 +25,25 @@ ATBPossessableActor::ATBPossessableActor()
 	}
 }
 
-bool ATBPossessableActor::Interact(ATBPlayerController& PC)
+bool ATBPossessableActor::CanInteract() const
 {
+	// 원격 카메라에 사용할 스트리밍 레벨이 준비되지 않았다면 상호작용을 막습니다.
 	if (bUseRemoteCamera && !bIsStreamingLevelLoaded && !StreamingLevel.IsNull())
 	{
 		return false;
 	}
-	
+
+	return Super::CanInteract();
+}
+
+bool ATBPossessableActor::Interact(ATBPlayerController& PC)
+{
+	// 탐색 이후 스트리밍 상태가 바뀌었을 수 있으므로 상호작용 직전에 다시 확인합니다.
+	if (!CanInteract())
+	{
+		return false;
+	}
+
 	Super::Interact(PC);
 
 	ATBPlayerCameraManager* CameraManager = Cast<ATBPlayerCameraManager>(PC.PlayerCameraManager);

@@ -25,14 +25,4 @@ private:
 	UFUNCTION()
 	void HandleInteractionFinished(FGameplayEventData Payload);
 	
-	
-	
-// ─────────────────────────────────────────────────────────────
-// Interaction
-// ─────────────────────────────────────────────────────────────
-protected:
-	/** 플레이어가 오브젝트와 상호작용할 수 있는 최대 거리입니다. */
-	UPROPERTY(EditDefaultsOnly, Category = "변수|상호작용")
-	float InteractionRange = 100.0f;
-	
 };

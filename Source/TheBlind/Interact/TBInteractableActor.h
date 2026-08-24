@@ -25,6 +25,10 @@ public:
 // Interactable Interface
 // ─────────────────────────────────────────────────────────────
 public:
+	/** 기본 상호작용 Actor는 항상 상호작용할 수 있음을 반환합니다. */
+	virtual bool CanInteract() const override;
+
+	/** 상호작용 대상 정보를 기록하고 상호작용을 시작합니다. */
 	virtual bool Interact(ATBPlayerController& PC) override;
 	
 	
