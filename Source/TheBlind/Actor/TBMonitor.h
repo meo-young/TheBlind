@@ -8,9 +8,12 @@
 
 class ACameraActor;
 class ATBSceneCaptureActor;
+class UAudioComponent;
 class UTBCCTVWidget;
 class UTBCCTVWidgetComponent;
 class UMaterialInstanceDynamic;
+class UTexture2D;
+class UWidgetInteractionComponent;
 
 UCLASS()
 class THEBLIND_API ATBMonitor : public ATBPossessableActor
@@ -26,6 +29,9 @@ public:
 
 	/** 모니터 머티리얼과 CCTV Widget을 초기화합니다. */
 	virtual void BeginPlay() override;
+
+	/** 모니터가 종료될 때 반복 재생 중인 노이즈 사운드를 정리합니다. */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -59,8 +65,14 @@ private:
 	/** 전달받은 장소에 해당하는 CCTV CameraActor의 시점으로 전환합니다. */
 	bool SelectCCTV(ETBLocation Location);
 
-	/** 모니터 머티리얼의 NoiseEnabled 파라미터를 변경합니다. */
+	/** 모니터의 노이즈 화면과 사운드 활성화 여부를 변경합니다. */
 	void SetNoiseEnabled(bool bEnabled);
+
+	/** 모니터 위치에서 노이즈 사운드 반복 재생을 시작합니다. */
+	void StartNoiseSound();
+
+	/** 현재 재생 중인 모니터 노이즈 사운드를 중단합니다. */
+	void StopNoiseSound();
 
 	/** 채널 전환 노이즈를 종료하고 CCTV Widget 입력을 복구합니다. */
 	void FinishCCTVChannelTransition();
@@ -90,6 +102,27 @@ public:
 
 
 // ─────────────────────────────────────────────────────────────
+// CCTV Cursor
+// ─────────────────────────────────────────────────────────────
+public:
+	/** 마우스 이동량에 따라 CCTV 화면 내부의 가상 커서를 이동합니다. */
+	void MoveCCTVCursor(const FVector2D& CursorDelta);
+
+	/** 가상 커서 위치의 CCTV Widget에 왼쪽 포인터 입력을 시작합니다. */
+	void PressCCTVPointer();
+
+	/** CCTV Widget에 전달한 왼쪽 포인터 입력을 종료합니다. */
+	void ReleaseCCTVPointer();
+
+private:
+	/** 현재 가상 커서 위치를 CCTV Widget 상호작용용 월드 HitResult로 변환합니다. */
+	void UpdateCCTVCursorInteraction();
+
+	/** CCTV 가상 커서 입력과 표시를 비활성화합니다. */
+	void DisableCCTVCursorInteraction();
+
+
+// ─────────────────────────────────────────────────────────────
 // CCTV Widget
 // ─────────────────────────────────────────────────────────────
 private:
@@ -111,6 +144,10 @@ protected:
 	/** 모니터 화면 위에 CCTV UI를 렌더링하는 World Space WidgetComponent입니다. */
 	UPROPERTY(VisibleAnywhere, Category = "변수|컴포넌트")
 	TObjectPtr<UTBCCTVWidgetComponent> CCTVWidgetComponent;
+
+	/** CCTV Widget에 가상 포인터 입력을 전달하는 컴포넌트입니다. */
+	UPROPERTY(VisibleAnywhere, Category = "변수|컴포넌트")
+	TObjectPtr<UWidgetInteractionComponent> WidgetInteractionComponent;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -135,11 +172,31 @@ protected:
 
 
 // ─────────────────────────────────────────────────────────────
+// Cursor Configuration
+// ─────────────────────────────────────────────────────────────
+protected:
+	/** CCTV 화면 안에 표시할 가상 커서 텍스처입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|커서")
+	TObjectPtr<UTexture2D> CCTVCursorTexture;
+
+	/** CCTV 가상 커서의 화면 표시 크기입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|커서", meta = (ClampMin = "1.0"))
+	FVector2D CCTVCursorSize = FVector2D(64.0f, 64.0f);
+
+	/** 마우스 이동량에 적용할 CCTV 가상 커서 이동 배율입니다. */
+	UPROPERTY(EditDefaultsOnly, Category = "변수|커서", meta = (ClampMin = "0.1"))
+	float CCTVCursorSensitivity = 2.0f;
+
+
+// ─────────────────────────────────────────────────────────────
 // Runtime State
 // ─────────────────────────────────────────────────────────────
 private:
 	/** 현재 출력 중인 CCTV의 장소입니다. */
 	ETBLocation CurrentCCTVLocation = ETBLocation::Dining;
+
+	/** CCTV Widget의 로컬 공간에서 가상 커서가 위치한 좌표입니다. */
+	FVector2D CCTVCursorPosition = FVector2D::ZeroVector;
 
 	/** 현재 출력 중인 CCTV 장소가 설정되었는지 나타냅니다. */
 	bool bHasCurrentCCTVLocation = false;
@@ -166,4 +223,8 @@ private:
 	/** 모니터 노이즈 파라미터를 제어하는 Dynamic Material Instance입니다. */
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> MonitorMaterialInstance;
+
+	/** 현재 반복 재생 중인 모니터 노이즈 AudioComponent입니다. */
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> NoiseAudioComponent;
 };

@@ -1,6 +1,10 @@
 #include "TBCCTVWidget.h"
 #include "Actor/TBMonitor.h"
 #include "Blueprint/WidgetTree.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
+#include "Engine/Texture2D.h"
 #include "TBCCTVChannelButton.h"
 
 void UTBCCTVWidget::NativeConstruct()
@@ -45,6 +49,8 @@ void UTBCCTVWidget::NativeDestruct()
 	}
 
 	ChannelButtons.Reset();
+	CCTVCursorImage = nullptr;
+	CCTVCursorSlot = nullptr;
 	Monitor = nullptr;
 
 	Super::NativeDestruct();
@@ -59,6 +65,42 @@ void UTBCCTVWidget::SetMonitor(ATBMonitor* InMonitor)
 	}
 
 	Monitor = InMonitor;
+}
+
+FVector UTBCCTVWidget::GetMonitorLocation() const
+{
+	return Monitor->GetActorLocation();
+}
+
+void UTBCCTVWidget::InitializeCCTVCursor(UTexture2D& CursorTexture, const FVector2D& CursorSize)
+{
+	// CCTV Widget의 루트 Canvas에 입력을 가로채지 않는 커서 이미지를 생성합니다.
+	UCanvasPanel* RootCanvas = CastChecked<UCanvasPanel>(GetRootWidget());
+	RootCanvas->SetClipping(EWidgetClipping::ClipToBounds);
+	CCTVCursorImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CCTVCursor"));
+	CCTVCursorImage->SetBrushFromTexture(&CursorTexture, true);
+	CCTVCursorImage->SetVisibility(ESlateVisibility::Collapsed);
+
+	CCTVCursorSlot = RootCanvas->AddChildToCanvas(CCTVCursorImage);
+	CCTVCursorSlot->SetSize(CursorSize);
+	CCTVCursorSlot->SetZOrder(100);
+}
+
+void UTBCCTVWidget::SetCCTVCursorPosition(const FVector2D& CursorPosition)
+{
+	CCTVCursorSlot->SetPosition(CursorPosition);
+}
+
+void UTBCCTVWidget::SetCCTVCursorVisible(const bool bVisible)
+{
+	// 표시 중에도 아래의 CCTV 버튼이 포인터 입력을 받을 수 있도록 Hit Test를 비활성화합니다.
+	if (bVisible)
+	{
+		CCTVCursorImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		return;
+	}
+
+	CCTVCursorImage->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UTBCCTVWidget::HandleChannelSelected(const ETBLocation Location)
