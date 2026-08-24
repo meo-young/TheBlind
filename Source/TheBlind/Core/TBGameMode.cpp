@@ -39,6 +39,9 @@ bool ATBGameMode::HandlePlayerDeath(const AActor& KillingEnemy, ACameraActor* De
 	PlayerController->SetIgnoreMoveInput(true);
 	PlayerController->SetIgnoreLookInput(true);
 
+	// 플레이어 사망 이후에는 크로스헤어 HUD를 렌더링하지 않습니다.
+	PlayerController->GetHUD()->bShowHUD = false;
+
 	UE_LOG(LogTemp, Warning, TEXT("플레이어 사망: %s에 의해 사망했습니다."), *GetNameSafe(&KillingEnemy));
 	return true;
 }

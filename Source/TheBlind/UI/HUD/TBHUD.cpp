@@ -1,8 +1,11 @@
 #include "TBHUD.h"
+#include "AbilitySystem/TBAbilitySystemComponent.h"
 #include "Character/Player/TBPlayerController.h"
+#include "Character/Player/TBPlayerState.h"
 #include "Engine/Canvas.h"
 #include "Engine/Texture2D.h"
 #include "Interact/Interactable.h"
+#include "TBGameplayTags.h"
 #include "UObject/ConstructorHelpers.h"
 
 ATBHUD::ATBHUD()
@@ -23,6 +26,13 @@ void ATBHUD::DrawHUD()
 	Super::DrawHUD();
 
 	ATBPlayerController* PC = CastChecked<ATBPlayerController>(PlayerOwner);
+
+	// 상호작용 Ability가 활성화된 동안에는 크로스헤어를 그리지 않습니다.
+	if (PC->GetPlayerState<ATBPlayerState>()->GetAbilitySystemComponent()->HasMatchingGameplayTag(TBGameplayTags::Status_Interact))
+	{
+		return;
+	}
+
 	UTexture2D* CrosshairTexture = DefaultCrosshairTexture;
 
 	// 카메라 중앙에 상호작용 대상이 있으면 현재 가능 여부에 맞는 텍스처를 선택합니다.
